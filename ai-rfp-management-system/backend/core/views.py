@@ -105,3 +105,46 @@ Please reply to this email with your proposal including:
         )
 
     return JsonResponse({"status": "RFP emails sent"})
+
+
+from .models import Proposal
+from .services.proposal_ai_service import parse_vendor_email
+
+
+@csrf_exempt
+@require_POST
+def create_proposal_from_email(request):
+    body = json.loads(request.body)
+
+    rfp_id = body.get("rfp_id")
+    vendor_id = body.get("vendor_id")
+    email_text = body.get("email_text")
+
+    if not rfp_id or not vendor_id or not email_text:
+        return JsonResponse(
+            {"error": "rfp_id, vendor_id, and email_text are required"},
+            status=400
+        )
+
+    parsed = parse_vendor_email(email_text)
+
+    proposal = Proposal.objects.create(
+        rfp_id=rfp_id,
+        vendor_id=vendor_id,
+        raw_email_text=email_text,
+        parsed_data=parsed,
+        total_price=parsed.get("total_price"),
+        delivery_timeline=parsed.get("delivery_timeline"),
+        warranty=parsed.get("warranty"),
+        payment_terms=parsed.get("payment_terms"),
+        ai_summary=parsed.get("summary"),
+    )
+
+    return JsonResponse(
+        {
+            "id": proposal.id,
+            "vendor": proposal.vendor.name,
+            "rfp": proposal.rfp.title,
+            "parsed_data": proposal.parsed_data,
+        }
+    )

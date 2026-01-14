@@ -19,3 +19,8 @@ urlpatterns = [
     path("vendors/create", create_vendor),
     path("rfps/send", send_rfp_to_vendors),
 ]
+
+from .views import create_proposal_from_email
+urlpatterns += [
+    path("proposals/create-from-email", create_proposal_from_email),
+]
