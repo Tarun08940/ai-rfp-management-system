@@ -67,44 +67,42 @@ def list_vendors(request):
 from django.core.mail import send_mail
 from .models import RFP
 
-
 @csrf_exempt
 @require_POST
 def send_rfp_to_vendors(request):
-    body = json.loads(request.body)
+    import json
+    from django.http import JsonResponse
 
-    rfp_id = body.get("rfp_id")
-    vendor_ids = body.get("vendor_ids", [])
+    data = json.loads(request.body)
+    rfp_id = data.get("rfp_id")
+    vendor_ids = data.get("vendor_ids", [])
 
     if not rfp_id or not vendor_ids:
-        return JsonResponse({"error": "rfp_id and vendor_ids required"}, status=400)
+        return JsonResponse({"error": "Invalid input"}, status=400)
 
     rfp = RFP.objects.get(id=rfp_id)
     vendors = Vendor.objects.filter(id__in=vendor_ids)
 
-    email_body = f"""
-RFP: {rfp.title}
-
-Details:
-{rfp.raw_input_text}
-
-Please reply to this email with your proposal including:
-- Total price
-- Delivery timeline
-- Warranty
-- Payment terms
-"""
+    sent = []
+    failed = []
 
     for vendor in vendors:
-        send_mail(
-            subject=f"RFP Request: {rfp.title}",
-            message=email_body,
-            from_email=EMAIL_HOST_USER,
-            recipient_list=[vendor.email],
-            fail_silently=False,
-        )
+        try:
+            send_mail(
+                subject=f"RFP: {rfp.title}",
+                message=rfp.raw_input_text,
+                from_email=None,
+                recipient_list=[vendor.email],
+            )
+            sent.append(vendor.email)
+        except Exception as e:
+            print("EMAIL FAILED:", vendor.email, str(e))
+            failed.append(vendor.email)
 
-    return JsonResponse({"status": "RFP emails sent"})
+    return JsonResponse({
+        "sent": sent,
+        "failed": failed,
+    })
 
 
 from .models import Proposal
@@ -148,3 +146,69 @@ def create_proposal_from_email(request):
             "parsed_data": proposal.parsed_data,
         }
     )
+
+
+from django.shortcuts import get_object_or_404
+def list_proposals_for_rfp(request, rfp_id):
+    proposals = Proposal.objects.filter(rfp_id=rfp_id)
+
+    data = []
+    for p in proposals:
+        data.append({
+            "vendor": p.vendor.name,
+            "total_price": p.total_price,
+            "delivery_timeline": p.delivery_timeline,
+            "warranty": p.warranty,
+            "payment_terms": p.payment_terms,
+            "ai_summary": p.ai_summary,
+        })
+
+    return JsonResponse(data, safe=False)
+
+
+
+from .services.recommendation_ai_service import recommend_vendor
+def recommend_vendor_for_rfp(request, rfp_id):
+    rfp = get_object_or_404(RFP, id=rfp_id)
+    proposals = Proposal.objects.filter(rfp=rfp)
+
+    proposal_data = []
+    for p in proposals:
+        proposal_data.append({
+            "vendor": p.vendor.name,
+            "total_price": p.total_price,
+            "delivery_timeline": p.delivery_timeline,
+            "warranty": p.warranty,
+            "payment_terms": p.payment_terms,
+        })
+
+    recommendation = recommend_vendor(rfp.title, proposal_data)
+
+    return JsonResponse({
+        "rfp": rfp.title,
+        "recommendation": recommendation,
+    })
+
+
+
+from django.shortcuts import render
+
+def create_rfp_page(request):
+    return render(request, "core/create_rfp.html")
+
+def vendors_page(request):
+    return render(request, "core/vendors.html")
+
+def send_rfp_page(request):
+    return render(request, "core/send_rfp.html")
+
+def compare_page(request):
+    return render(request, "core/compare.html")
+
+
+
+
+def list_rfps(request):
+    rfps = RFP.objects.all().order_by("-created_at")
+    data = [{"id": r.id, "title": r.title} for r in rfps]
+    return JsonResponse(data, safe=False)

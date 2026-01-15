@@ -123,11 +123,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("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")
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-
 EMAIL_HOST = os.getenv("EMAIL_HOST")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT"))
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

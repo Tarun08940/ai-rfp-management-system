@@ -1,0 +1,107 @@
+{% extends "core/base.html" %}
+{% block title %}Send RFP{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+
+  <h2 class="text-2xl font-semibold mb-2">Send RFP</h2>
+  <p class="text-slate-400 mb-6">
+    Select an RFP and vendors to send it to.
+  </p>
+
+  <div class="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-6">
+
+    <!-- RFP Select -->
+    <div>
+      <label class="block text-sm mb-2">Select RFP</label>
+      <select
+        id="rfpSelect"
+        class="w-full bg-slate-950 border border-slate-700 rounded-md p-3 text-slate-200"
+      >
+        <option value="">Loading RFPs...</option>
+      </select>
+    </div>
+
+    <!-- Vendors -->
+    <div>
+      <label class="block text-sm mb-2">Select Vendors</label>
+      <div id="vendorCheckboxes" class="space-y-2 text-sm text-slate-300">
+        Loading vendors...
+      </div>
+    </div>
+
+    <button
+      onclick="sendRFP()"
+      class="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-900 font-medium rounded-md"
+    >
+      Send RFP
+    </button>
+
+    <p id="status" class="text-slate-400"></p>
+
+  </div>
+</div>
+
+<script>
+  async function loadRFPs() {
+    const res = await fetch("/api/rfps");
+    const data = await res.json();
+
+    const select = document.getElementById("rfpSelect");
+    select.innerHTML = '<option value="">Select an RFP</option>';
+
+    data.forEach(rfp => {
+      const opt = document.createElement("option");
+      opt.value = rfp.id;
+      opt.textContent = rfp.title;
+      select.appendChild(opt);
+    });
+  }
+
+  async function loadVendors() {
+    const res = await fetch("/api/vendors");
+    const data = await res.json();
+
+    const container = document.getElementById("vendorCheckboxes");
+    container.innerHTML = "";
+
+    data.forEach(v => {
+      const div = document.createElement("div");
+      div.innerHTML = `
+        <label class="flex items-center gap-2">
+          <input type="checkbox" value="${v.id}" />
+          <span>${v.name} (${v.email})</span>
+        </label>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  async function sendRFP() {
+    const rfpId = document.getElementById("rfpSelect").value;
+    const vendorIds = Array.from(
+      document.querySelectorAll("#vendorCheckboxes input:checked")
+    ).map(cb => cb.value);
+
+    if (!rfpId || vendorIds.length === 0) {
+      alert("Please select an RFP and at least one vendor.");
+      return;
+    }
+
+    const res = await fetch("/api/rfps/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rfp_id: rfpId,
+        vendor_ids: vendorIds
+      }),
+    });
+
+    document.getElementById("status").textContent =
+      res.ok ? "RFP sent successfully." : "Failed to send RFP.";
+  }
+
+  loadRFPs();
+  loadVendors();
+</script>
+{% endblock %}

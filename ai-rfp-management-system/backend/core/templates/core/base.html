@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{% block title %}AI RFP Management{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#38bdf8',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="bg-slate-950 text-slate-200 min-h-screen">
+
+  <!-- Navbar -->
+  <nav class="border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <h1 class="text-lg font-semibold text-white">
+        AI RFP System
+      </h1>
+      <div class="space-x-4 text-sm text-slate-400">
+        <a href="/rfps/create" class="hover:text-white">Create RFP</a>
+        <a href="/vendors" class="hover:text-white">Vendors</a>
+        <a href="/rfps/send" class="hover:text-white">Send RFP</a>
+        <a href="/rfps/compare" class="hover:text-white">Compare</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Page content -->
+  <main class="max-w-7xl mx-auto px-6 py-10">
+    {% block content %}{% endblock %}
+  </main>
+
+</body>
+</html>

@@ -1,0 +1,137 @@
+{% extends "core/base.html" %}
+{% block title %}Compare Proposals{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+
+  <h2 class="text-2xl font-semibold mb-2">Compare Proposals</h2>
+  <p class="text-slate-400 mb-6">
+    Review vendor proposals and get an AI-assisted recommendation.
+  </p>
+
+  <!-- Select RFP -->
+  <div class="bg-slate-900 border border-slate-800 rounded-lg p-6 mb-6">
+    <label class="block text-sm mb-2">Select RFP</label>
+    <select
+      id="rfpSelect"
+      class="w-full bg-slate-950 border border-slate-700 rounded-md p-3 text-slate-200"
+    >
+      <option value="">Loading RFPs...</option>
+    </select>
+  </div>
+
+  <!-- Proposals Table -->
+  <div class="bg-slate-900 border border-slate-800 rounded-lg p-6 mb-6">
+    <h3 class="text-lg font-medium mb-4">Vendor Proposals</h3>
+
+    <table class="w-full text-sm text-left text-slate-300">
+      <thead class="text-slate-400 border-b border-slate-700">
+        <tr>
+          <th class="py-2">Vendor</th>
+          <th>Total Price</th>
+          <th>Delivery</th>
+          <th>Warranty</th>
+          <th>Payment Terms</th>
+        </tr>
+      </thead>
+      <tbody id="proposalTable">
+        <tr>
+          <td colspan="5" class="py-4 text-slate-500">
+            Select an RFP to view proposals.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Recommendation -->
+  <div class="bg-slate-900 border border-slate-800 rounded-lg p-6">
+    <button
+      onclick="getRecommendation()"
+      class="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-900 font-medium rounded-md"
+    >
+      Get Recommendation
+    </button>
+
+    <p
+      id="recommendationText"
+      class="mt-4 text-slate-300"
+    >
+      No recommendation generated yet.
+    </p>
+  </div>
+
+</div>
+
+<script>
+  async function loadRFPs() {
+    const res = await fetch("/api/rfps");
+    const data = await res.json();
+
+    const select = document.getElementById("rfpSelect");
+    select.innerHTML = '<option value="">Select an RFP</option>';
+
+    data.forEach(rfp => {
+      const opt = document.createElement("option");
+      opt.value = rfp.id;
+      opt.textContent = rfp.title;
+      select.appendChild(opt);
+    });
+
+    select.addEventListener("change", loadProposals);
+  }
+
+  async function loadProposals() {
+    const rfpId = document.getElementById("rfpSelect").value;
+    const table = document.getElementById("proposalTable");
+
+    if (!rfpId) return;
+
+    const res = await fetch(`/api/rfps/${rfpId}/proposals`);
+    const data = await res.json();
+
+    table.innerHTML = "";
+
+    if (data.length === 0) {
+      table.innerHTML = `
+        <tr>
+          <td colspan="5" class="py-4 text-slate-500">
+            No proposals received yet.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    data.forEach(p => {
+      const row = document.createElement("tr");
+      row.className = "border-b border-slate-800";
+      row.innerHTML = `
+        <td class="py-2">${p.vendor}</td>
+        <td>${p.total_price ?? "-"}</td>
+        <td>${p.delivery_timeline ?? "-"}</td>
+        <td>${p.warranty ?? "-"}</td>
+        <td>${p.payment_terms ?? "-"}</td>
+      `;
+      table.appendChild(row);
+    });
+  }
+
+  async function getRecommendation() {
+    const rfpId = document.getElementById("rfpSelect").value;
+    if (!rfpId) {
+      alert("Please select an RFP first.");
+      return;
+    }
+
+    const res = await fetch(`/api/rfps/${rfpId}/recommendation`);
+    const data = await res.json();
+
+    document.getElementById("recommendationText").textContent =
+      data.recommendation || "Recommendation unavailable.";
+  }
+
+  loadRFPs();
+</script>
+{% endblock %}
+ 
